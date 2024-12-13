@@ -14,15 +14,24 @@ def load_and_merge_shapefiles(input_folder):
     for filename in os.listdir(input_folder):
         if filename.endswith(".shp"):
             shapefile_path = os.path.join(input_folder, filename)
-            gdf = gpd.read_file(shapefile_path)
-            gdfs.append(gdf)
-    
+            try:
+                gdf = gpd.read_file(shapefile_path)
+                
+                # Ubah CRS ke EPSG:4326 jika perlu
+                if gdf.crs != "EPSG:4326":
+                    gdf = gdf.to_crs(epsg=4326)
+                    
+                gdfs.append(gdf)
+            except Exception as e:
+                st.error(f"Kesalahan saat membaca {filename}: {e}")
+
+    if not gdfs:
+        st.error("Tidak ada shapefile yang valid ditemukan.")
+        st.stop()
+
     # Menggabungkan semua GeoDataFrame menjadi satu
     merged_gdf = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
-    
-    # Mengonversi CRS ke EPSG:4326 agar kompatibel dengan folium
-    merged_gdf = merged_gdf.to_crs(epsg=4326)
-    
+
     return merged_gdf
 
 # Fungsi untuk membuat peta folium dari GeoDataFrame
